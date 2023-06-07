@@ -32,7 +32,7 @@
         <h1 class="card-title">Wprowadź kod produktu</h1>
         <div class="card-body">
                 <div class="input-group mb-3">
-                    <input type="number" class="form-control" name="id" placeholder="Kod produktu" id="id">
+                    <input type="number" class="form-control" name="product_code" placeholder="Kod produktu" id="id">
                     <div class="input-group-append">
                         <button type="submit" class="btn btn-primary" onclick=dataPull()>Wyszukaj</button>
                     </div>
@@ -43,7 +43,7 @@
 </div>
 <script>
   function dataPull(){
-      var product_id = document.getElementById("id").value;
+      var product_id = document.getElementById("product_code").value;
       if(product_id == "") {
         location.reload()
           alert("Błędny kod produktu");

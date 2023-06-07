@@ -1,5 +1,5 @@
 from app import app
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for
 
 
 @app.route("/name", defaults={"name":"Anonim"})
@@ -8,11 +8,13 @@ def name(name):
     return f"Hello {name}"
 
 @app.route("/")
+@app.route("/index")
 def main_page():
     return render_template("index.html")
 
-@app.route("/Ekstrakcja")
+@app.route("/Ekstrakcja", methods=["POST", "GET"])
 def extraction():
+    if request.method == "POST":
     return render_template("extraction.html")
 
 @app.route("/Autor")
