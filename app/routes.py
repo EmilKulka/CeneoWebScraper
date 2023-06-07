@@ -8,19 +8,26 @@ def name(name):
     return f"Hello {name}"
 
 @app.route("/")
+
 @app.route("/index")
-def main_page():
+def index():
     return render_template("index.html")
 
-@app.route("/Ekstrakcja", methods=["POST", "GET"])
-def extraction():
+@app.route("/extract", methods=["POST", "GET"])
+def extract():
     if request.method == "POST":
+        product_code = request.form.get("product_code")
+        return redirect(url_for('product_site', code=product_code))
     return render_template("extraction.html")
 
-@app.route("/Autor")
+@app.route("/author")
 def author():
     return render_template("author.html")
 
-@app.route("/Lista_produktów")
+@app.route("/product_list")
 def product_list():
     return render_template("product_list.html")
+
+@app.route("/product_site/<code>")
+def product_site(code):
+    return render_template("product_site.html", product_code=code)
