@@ -23,11 +23,10 @@ def index():
 
 @app.route("/extract", methods=["POST", "GET"])
 def extract():
-    if request.method == "POST":
-        product_code = request.form.get("product_code")
-        all_opinions = []
-        # url = "https://www.ceneo.pl/" + product_code + "#tab=reviews"
+    if request.method == 'POST':
+        product_code = request.form.get('product_code')
         url = f"https://www.ceneo.pl/{product_code}#tab=reviews"
+        all_opinions = []
         while(url):
             print(url)
             response = requests.get(url)
@@ -38,57 +37,40 @@ def extract():
                 for key, value in selectors.items():
                     single_opinion[key] = get_element(opinion, *value)
                 all_opinions.append(single_opinion)
-            try:
-                url = "https://www.ceneo.pl"+get_element(page_dom, "a.pagination__next", "href")
+            try:    
+                url = "https://www.ceneo.pl"+get_element(page_dom,"a.pagination__next","href")
             except TypeError:
                 url = None
-
         if not os.path.exists("./app/data/opinions"):
             os.mkdir("./app/data/opinions")
         with open(f"./app/data/opinions/{product_code}.json", "w", encoding="UTF-8") as jf:
             json.dump(all_opinions, jf, indent=4, ensure_ascii=False)
-        opinions = pd.read_json(json.dumps(all_opinions,ensure_ascii=False))
-        opinions.score = opinions.score.map(lambda x: float(x.split("/")[0].replace(",",".")))
+        opinions = pd.read_json(json.dumps(all_opinions, ensure_ascii=False))
+        opinions.stars = opinions.stars.map(lambda x: float(x.split("/")[0].replace(",",".")))
         stats = {
-            "opinions_count": int(opinions.shape[0]),
+            "opinions_count": int(opinions.opinion_id.count()),
             "pros_count": int(opinions.pros.map(bool).sum()),
             "cons_count": int(opinions.cons.map(bool).sum()),
-            "avg_score": opinions.score.mean().round(2)
+            "stars_avg": opinions.stars.mean().round(2)
         }
-        score = opinions.score.value_counts().reindex(list(np.arange(0,5.5,0.5)), fill_value = 0)
-        score.plot.bar(color="hotpink")
-        plt.xticks(rotation=0)
-        plt.title("Histogram ocen")
-        plt.xlabel("Liczba gwiazdek")
-        plt.ylabel("Liczba opinii")
-        plt.ylim(0,max(score.values)+1.5)
-        for index, value in enumerate(score):
-            plt.text(index, value+0.5, str(value), ha="center")
-        try:
+        if not os.path.exists("./app/static/plots"):
             os.mkdir("./app/static/plots")
-        except FileExistsError:
-            pass
-        plt.savefig(f"./app/static/plots/{product_code}_score.png")
+        stars = opinions.stars.value_counts().reindex(list(np.arange(0,5.5,0.5)), fill_value=0)
+        print(stars)
+        stars.plot.bar()
+        plt.title("Histogram gwiazdek")
+        plt.savefig(f"./app/static/plots/{product_code}_stars.png")
         plt.close()
-        recommendation = opinions["recommendation"].value_counts(dropna = False).reindex(["Nie polecam", "Polecam", np.nan])
-        print(recommendation)
-        recommendation.plot.pie(
-            label="", 
-            autopct="%1.1f%%",
-            labels = ["Nie polecam", "Polecam", "Nie mam zdania"],
-            colors = ["crimson", "forestgreen", "gray"]
-        )
-        plt.legend(bbox_to_anchor=(1.0,1.0))
-        plt.savefig(f"./app/static/plots/{product_code}_recommendation.png")
+        recommendations = opinions.recommendation.value_counts(dropna=False)
+        recommendations.plot.pie(label="", autopct="%1.1f%%")
+        plt.savefig(f"./app/static/plots/{product_code}_recommendations.png")
         plt.close()
-        stats['score'] = score.to_dict()
-        stats['recommendation'] = recommendation.to_dict()
-        try:
-            os.mkdir("./app/static/stats")
-        except FileExistsError:
-            pass
-        with open(f"./app/static/stats/{product_code}.json", "w", encoding="UTF-8") as jf:
-            json.dump(stats, jf, indent=4,ensure_ascii=False)
+        stats['stars'] = stars.to_dict()
+        stats['recommendations'] = recommendations.to_dict()
+        if not os.path.exists("./app/data/stats"):
+            os.mkdir("./app/data/stats")
+        with open(f"./app/data/stats/{product_code}.json", "w", encoding="UTF-8") as jf:
+            json.dump(stats, jf, indent=4, ensure_ascii=False)
         return redirect(url_for('product_site', code=product_code))
     return render_template("extraction.html")
 
@@ -102,5 +84,5 @@ def product_list():
 
 @app.route("/product_site/<code>")
 def product_site(code):
-    opinions = pd.read_json(f"./opinions/{code}.json")
-    return render_template("product_site.html", product_code=code, opinions= opinions.to_html(header="True", table_id= "opinions", classes= "table table-striped table-info"))
+    opinions = pd.read_json(f"./app/data/opinions/{code}.json")
+    return render_template("product_site.html", product_code=code, opinions = opinions.to_html(header="true", table_id="opinions", classes="table table-striped table-info"))
